@@ -8,18 +8,19 @@ import android.graphics.PointF;
 import android.os.Build;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 /**
  * Created by cmlBeliever on 2016/3/25.
  * <p>弹性layout</p>
  */
-public class BounceLayout extends FrameLayout {
+public class BounceLayout extends LinearLayout {
 
     private static final String TAG = BounceLayout.class.getSimpleName();
     private static final int DIRECTION_X = 1;
@@ -112,10 +113,13 @@ public class BounceLayout extends FrameLayout {
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
 
+        Log.d(TAG, "onInterceptTouchEvent===>:" + ev.getX() + "," + ev.getY() + ",=======," + ev.getRawX() + "," + ev.getRawY());
+
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 initPoint.x = ev.getX();
                 initPoint.y = ev.getY();
+                findViewByPoint(ev.getX(),ev.getY());
                 break;
             case MotionEvent.ACTION_MOVE:
                 float dx = ev.getX() - initPoint.x;
@@ -130,6 +134,7 @@ public class BounceLayout extends FrameLayout {
                     }
                 }
 
+                //垂直方向移动
                 if (direction == DIRECTION_Y && canChildScrollVertically((int) -dy)) {
                     MotionEvent event = MotionEvent.obtain(ev);
                     event.setAction(MotionEvent.ACTION_CANCEL);
@@ -149,6 +154,23 @@ public class BounceLayout extends FrameLayout {
 
 
         return direction == DIRECTION_NONE ? super.onInterceptTouchEvent(ev) : true;
+    }
+
+
+    private View findViewByPoint(float x, float y) {
+        View child = getChildAt(0);
+
+        Log.d(TAG, "findViewByPoint child===>:" + child.getLeft() + "," + child.getRight());
+
+        if (child instanceof ViewGroup) {
+            ViewGroup childGroup = (ViewGroup) child;
+            for (int i = 0; i < childGroup.getChildCount(); i++) {
+                View childView = childGroup.getChildAt(i);
+                Log.d(TAG, "findViewByPoint childView===>:" + childView.getClass().getSimpleName() + ",," + childView.getLeft() + "," + childView.getRight());
+            }
+        }
+
+        return null;
     }
 
 //    public boolean daaispatchTouchEvent(MotionEvent ev) {
