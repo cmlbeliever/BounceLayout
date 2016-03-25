@@ -8,7 +8,6 @@ import android.graphics.PointF;
 import android.os.Build;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -131,11 +130,17 @@ public class BounceLayout extends FrameLayout {
                     }
                 }
 
-                if (direction == DIRECTION_Y && !canChildScrollVertically((int) -dy)) {
+                if (direction == DIRECTION_Y && !canChildScrollVertically((int) dy)) {
+                    MotionEvent event = MotionEvent.obtain(ev);
+                    event.setAction(MotionEvent.ACTION_CANCEL);
+                    onTouchEvent(event);
                     return super.onInterceptTouchEvent(ev);
                 }
 
-                if (direction == DIRECTION_X && !canChildScrollHorizontally((int) -dx)) {
+                if (direction == DIRECTION_X && !canChildScrollHorizontally((int) dx)) {
+                    MotionEvent event = MotionEvent.obtain(ev);
+                    event.setAction(MotionEvent.ACTION_CANCEL);
+                    onTouchEvent(event);
                     return super.onInterceptTouchEvent(ev);
                 }
 
@@ -234,20 +239,8 @@ public class BounceLayout extends FrameLayout {
             for (int i = 0; i < childGroup.getChildCount(); i++) {
                 View childView = childGroup.getChildAt(i);
 
-                Log.d(TAG, "===>canChildScrollVertically===>" + direction + " ,scroll:" + childView.getClass().getSimpleName() + "," + ViewCompat.canScrollVertically(childView, -1) + "," + ViewCompat.canScrollVertically(childView, 1));
-
-                if (ViewCompat.canScrollVertically(childView, -direction)) {
-
-//                    //向下滑动
-//                    if (direction > 0) {
-//                        return childView.getScrollY() > 0;
-//                    }
-
-
-//                    return childView.getScrollY() == childView.getMeasuredHeight();
+                if (ViewCompat.canScrollVertically(childView, direction)) {
                     return true;
-
-
                 }
             }
         }
