@@ -119,7 +119,7 @@ public class BounceLayout extends LinearLayout {
             case MotionEvent.ACTION_DOWN:
                 initPoint.x = ev.getX();
                 initPoint.y = ev.getY();
-                findViewByPoint(ev.getX(),ev.getY());
+                findViewByPoint(ev.getX(), ev.getY());
                 break;
             case MotionEvent.ACTION_MOVE:
                 float dx = ev.getX() - initPoint.x;
@@ -162,11 +162,17 @@ public class BounceLayout extends LinearLayout {
 
         Log.d(TAG, "findViewByPoint child===>:" + child.getLeft() + "," + child.getRight());
 
+        int[] location = new int[2];
+
+        child.getLocationOnScreen(location);
+        Log.d(TAG, "findViewByPoint child getLocationOnScreen===>:" + location[0] + "," + location[1]);
+
         if (child instanceof ViewGroup) {
             ViewGroup childGroup = (ViewGroup) child;
             for (int i = 0; i < childGroup.getChildCount(); i++) {
                 View childView = childGroup.getChildAt(i);
-                Log.d(TAG, "findViewByPoint childView===>:" + childView.getClass().getSimpleName() + ",," + childView.getLeft() + "," + childView.getRight());
+                childView.getLocationOnScreen(location);
+                Log.d(TAG, "findViewByPoint child getLocationOnScreen===>:" + location[0] + "," + location[1]);
             }
         }
 
