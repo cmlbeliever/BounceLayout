@@ -130,14 +130,14 @@ public class BounceLayout extends FrameLayout {
                     }
                 }
 
-                if (direction == DIRECTION_Y && !canChildScrollVertically((int) dy)) {
+                if (direction == DIRECTION_Y && canChildScrollVertically((int) -dy)) {
                     MotionEvent event = MotionEvent.obtain(ev);
                     event.setAction(MotionEvent.ACTION_CANCEL);
                     onTouchEvent(event);
                     return super.onInterceptTouchEvent(ev);
                 }
 
-                if (direction == DIRECTION_X && !canChildScrollHorizontally((int) dx)) {
+                if (direction == DIRECTION_X && canChildScrollHorizontally((int) -dx)) {
                     MotionEvent event = MotionEvent.obtain(ev);
                     event.setAction(MotionEvent.ACTION_CANCEL);
                     onTouchEvent(event);
