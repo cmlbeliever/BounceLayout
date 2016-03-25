@@ -64,7 +64,6 @@ public class BounceLayout extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-
         switch (ev.getAction()) {
             case MotionEvent.ACTION_MOVE:
                 float dx = ev.getX() - initPoint.x;
