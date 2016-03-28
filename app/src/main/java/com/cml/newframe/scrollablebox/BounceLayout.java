@@ -5,7 +5,9 @@ import android.animation.ObjectAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.os.Build;
+import android.support.v4.view.ScrollingView;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -13,8 +15,13 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import android.widget.AbsListView;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
-import android.widget.Toast;
+import android.widget.ScrollView;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by cmlBeliever on 2016/3/25.
@@ -27,10 +34,22 @@ public class BounceLayout extends LinearLayout {
     private static final int DIRECTION_Y = 2;
     private static final int DIRECTION_NONE = 3;
 
+    /**
+     * 可移动比率 默认为0.5
+     */
+    private float transRatio = 0.5f;
+
+    /**
+     * 手指按下的坐标
+     */
     private PointF initPoint = new PointF();
 
     private Animator translateAnim;
     private int direction = DIRECTION_NONE;
+
+    //手指按下时所在的view
+    private View touchView;
+    private Map<RectF, ViewGroup> positionMap = new HashMap<>();
 
     public BounceLayout(Context context) {
         super(context);
@@ -54,12 +73,6 @@ public class BounceLayout extends LinearLayout {
     }
 
     private void init() {
-        setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Toast.makeText(getContext(), "点击了view", Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     @Override
@@ -79,9 +92,13 @@ public class BounceLayout extends LinearLayout {
                 } else {
                     //x方向移动
                     if (direction == DIRECTION_X) {
-                        ViewCompat.setTranslationX(getChildAt(0), dx);
+                        if (Math.abs(dx) <= getMeasuredWidth() * transRatio) {
+                            ViewCompat.setTranslationX(getChildAt(0), dx);
+                        }
                     } else if (direction == DIRECTION_Y) {
-                        ViewCompat.setTranslationY(getChildAt(0), dy);
+                        if (Math.abs(dy) <= getMeasuredHeight() * transRatio) {
+                            ViewCompat.setTranslationY(getChildAt(0), dy);
+                        }
                     }
                     return true;
                 }
@@ -89,6 +106,7 @@ public class BounceLayout extends LinearLayout {
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+
                 dx = ViewCompat.getTranslationX(getChildAt(0));
                 dy = ViewCompat.getTranslationY(getChildAt(0));
 
@@ -101,6 +119,7 @@ public class BounceLayout extends LinearLayout {
                 if (direction != DIRECTION_NONE) {
                     direction = DIRECTION_NONE;
                     return true;
+
                 }
 
                 break;
@@ -112,18 +131,18 @@ public class BounceLayout extends LinearLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-
-        Log.d(TAG, "onInterceptTouchEvent===>:" + ev.getX() + "," + ev.getY() + ",=======," + ev.getRawX() + "," + ev.getRawY());
-
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 initPoint.x = ev.getX();
                 initPoint.y = ev.getY();
-                findViewByPoint(ev.getX(), ev.getY());
+                touchView = findViewByPosition(ev.getRawX(), ev.getRawY());
+                Log.d(TAG, "onInterceptTouchEvent===>touchView:" + touchView);
                 break;
             case MotionEvent.ACTION_MOVE:
                 float dx = ev.getX() - initPoint.x;
                 float dy = ev.getY() - initPoint.y;
+
+                Log.d(TAG, "onInterceptTouchEvent===>ACTION_MOVE touchView:" + touchView);
 
                 if (direction == DIRECTION_NONE) {
                     //x方向移动
@@ -157,90 +176,61 @@ public class BounceLayout extends LinearLayout {
     }
 
 
-    private View findViewByPoint(float x, float y) {
-        View child = getChildAt(0);
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        super.onLayout(changed, l, t, r, b);
 
-        Log.d(TAG, "findViewByPoint child===>:" + child.getLeft() + "," + child.getRight());
+        if (changed) {
+            // 保存可滚动对象
+            positionMap.clear();
+            saveChildRect(this);
+        }
 
-        int[] location = new int[2];
+    }
 
-        child.getLocationOnScreen(location);
-        Log.d(TAG, "findViewByPoint child getLocationOnScreen===>:" + location[0] + "," + location[1]);
+    private View findViewByPosition(float x, float y) {
 
-        if (child instanceof ViewGroup) {
-            ViewGroup childGroup = (ViewGroup) child;
-            for (int i = 0; i < childGroup.getChildCount(); i++) {
-                View childView = childGroup.getChildAt(i);
-                childView.getLocationOnScreen(location);
-                Log.d(TAG, "findViewByPoint child getLocationOnScreen===>:" + location[0] + "," + location[1]);
+        for (RectF rectF : positionMap.keySet()) {
+            if (rectF.left <= x && x <= rectF.right && rectF.top <= y && y <= rectF.bottom) {
+                return positionMap.get(rectF);
             }
         }
 
         return null;
     }
 
-//    public boolean daaispatchTouchEvent(MotionEvent ev) {
-//
-////        Log.d(TAG, "dispatchTouchEvent===>:" + ev.getAction());
-//
-//        switch (ev.getAction()) {
-//            case MotionEvent.ACTION_DOWN:
-//                initPoint.x = ev.getX();
-//                initPoint.y = ev.getY();
-//                break;
-//            case MotionEvent.ACTION_MOVE:
-//                float dx = ev.getX() - initPoint.x;
-//                float dy = ev.getY() - initPoint.y;
-//
-//                if (direction == DIRECTION_NONE) {
-//                    //x方向移动
-//                    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-//                        direction = DIRECTION_X;
-//                    } else if (Math.abs(dy) > 10) {
-//                        direction = DIRECTION_Y;
-//                    }
-//                } else {
-//                    //x方向移动
-//                    if (direction == DIRECTION_X) {
-////                        if (!canChildScrollHorizontally((int) dx)) {
-//                        ViewCompat.setTranslationX(getChildAt(0), dx);
-////                        } else {
-////                            direction = DIRECTION_NONE;
-////                        }
-//
-//                    } else if (direction == DIRECTION_Y) {
-////                        if (!canChildScrollVertically((int) dy)) {
-//                        ViewCompat.setTranslationY(getChildAt(0), dy);
-////                        } else {
-////                            direction = DIRECTION_NONE;
-////                        }
-//
-//                    }
-//                }
-//
-//                break;
-//            case MotionEvent.ACTION_UP:
-//            case MotionEvent.ACTION_CANCEL:
-//                dx = ViewCompat.getTranslationX(getChildAt(0));
-//                dy = ViewCompat.getTranslationY(getChildAt(0));
-//
-//                if (direction == DIRECTION_X) {
-//                    startTransAnim(DIRECTION_X, dx, 0);
-//                } else if (direction == DIRECTION_Y) {
-//                    startTransAnim(DIRECTION_Y, dy, 0);
-//                }
-//
-//                if (direction != DIRECTION_NONE) {
-//                    direction = DIRECTION_NONE;
-//                    return true;
-//                }
-//
-////                Log.d(TAG, "dispatchTouchEvent===>ACTION_UP:" + dx + "," + dy);
-//                break;
-//        }
-//
-//        return super.dispatchTouchEvent(ev);
-//    }
+    /**
+     * 找出所有可滚动的view，并存储位置
+     *
+     * @param view
+     */
+    private void saveChildRect(ViewGroup view) {
+
+
+        if (view instanceof ScrollView || view instanceof HorizontalScrollView || view instanceof ScrollingView || view instanceof AbsListView) {
+
+            int[] location = new int[2];
+//            view.getLocationOnScreen(location);
+            view.getLocationInWindow(location);
+
+            RectF rectF = new RectF();
+            rectF.left = location[0];
+            rectF.top = location[1];
+            rectF.right = rectF.left + view.getMeasuredWidth();
+            rectF.bottom = rectF.top + view.getMeasuredHeight();
+
+            Log.d(TAG, "saveChildRect===>(" + rectF);
+
+            positionMap.put(rectF, view);
+        } else {
+            int childCount = view.getChildCount();
+            for (int i = 0; i < childCount; i++) {
+                if (view.getChildAt(i) instanceof ViewGroup) {
+                    this.saveChildRect((ViewGroup) view.getChildAt(i));
+                }
+            }
+        }
+    }
 
 
     private void startTransAnim(int direction, float start, float end) {
@@ -259,21 +249,7 @@ public class BounceLayout extends LinearLayout {
      * @return
      */
     private boolean canChildScrollVertically(int direction) {
-
-        View child = getChildAt(0);
-
-        if (child instanceof ViewGroup) {
-            ViewGroup childGroup = (ViewGroup) child;
-            for (int i = 0; i < childGroup.getChildCount(); i++) {
-                View childView = childGroup.getChildAt(i);
-
-                if (ViewCompat.canScrollVertically(childView, direction)) {
-                    return true;
-                }
-            }
-        }
-
-        return ViewCompat.canScrollVertically(getChildAt(0), direction);
+        return touchView == null ? false : ViewCompat.canScrollVertically(touchView, direction);
     }
 
 
@@ -282,17 +258,19 @@ public class BounceLayout extends LinearLayout {
      * @return
      */
     private boolean canChildScrollHorizontally(int direction) {
-        View child = getChildAt(0);
-
-        if (child instanceof ViewGroup) {
-            ViewGroup childGroup = (ViewGroup) child;
-            for (int i = 0; i < childGroup.getChildCount(); i++) {
-                if (ViewCompat.canScrollHorizontally(childGroup.getChildAt(i), direction)) {
-                    return true;
-                }
-            }
-        }
-        return ViewCompat.canScrollHorizontally(getChildAt(0), direction);
+        return touchView == null ? false : ViewCompat.canScrollHorizontally(touchView, direction);
     }
 
+    public float getTransRatio() {
+        return transRatio;
+    }
+
+    /**
+     * 设置偏移部分百分比
+     *
+     * @param transRatio 0-1 ,1 100%距离
+     */
+    public void setTransRatio(float transRatio) {
+        this.transRatio = transRatio;
+    }
 }
